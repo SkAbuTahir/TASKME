@@ -21,12 +21,20 @@ const Login = () => {
 
   const handleLogin = async (data) => {
     try {
+      console.log('Login attempt with data:', data);
       const res = await login(data).unwrap();
+      console.log('Login response:', res);
 
       dispatch(setCredentials(res));
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
-      toast.error(err?.data?.message || err.error);
+      console.error('Login error:', {
+        error: err,
+        status: err.status,
+        data: err.data,
+        message: err?.data?.message || err.error || 'Login failed'
+      });
+      toast.error(err?.data?.message || err.error || 'Login failed. Please try again.');
     }
   };
 

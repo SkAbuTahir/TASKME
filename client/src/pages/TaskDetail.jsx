@@ -115,13 +115,12 @@ const Activities = ({ activity, id, refetch }) => {
       refetch();
     } catch (err) {
       console.log(err);
-      toast.error(err?.data?.message || err.error);
     }
   };
 
-  const Card = ({ item }) => {
+  const Card = React.memo(({ item }) => {
     return (
-      <div className={`flex space-x-4`}>
+    <div className={`flex space-x-4`} key={item?._id || item?.id || `activity-${Math.random().toString(36).substr(2, 9)}`}>
         <div className='flex flex-col items-center flex-shrink-0'>
           <div className='w-10 h-10 flex items-center justify-center'>
             {TASKTYPEICON[item?.type]}
@@ -141,20 +140,23 @@ const Activities = ({ activity, id, refetch }) => {
         </div>
       </div>
     );
-  };
+  });
 
   return (
     <div className='w-full flex gap-10 2xl:gap-20 min-h-screen px-10 py-8 bg-white shadow rounded-md justify-between overflow-y-auto'>
       <div className='w-full md:w-1/2'>
         <h4 className='text-gray-600 font-semibold text-lg mb-5'>Activities</h4>
         <div className='w-full space-y-0'>
-          {activity?.map((item, index) => (
-            <Card
-              key={item.id}
-              item={item}
-              isConnected={index < activity?.length - 1}
-            />
-          ))}
+          {activity?.map((item, index) => {
+            const uniqueKey = item._id || item.id || `activity-${index}`;
+            return (
+              <Card
+                key={uniqueKey}
+                item={item}
+                isConnected={index < activity?.length - 1}
+              />
+            );
+          })}
         </div>
       </div>
 

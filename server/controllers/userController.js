@@ -39,23 +39,39 @@ const loginUser = asyncHandler(async (req, res) => {
 
 // POST - Register a new user
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, isAdmin, role, title } = req.body;
+  const { username, name, email, password, isAdmin, role, title } = req.body;
 
-  const userExists = await User.findOne({ email });
+  // Check if user exists by email or username
+  const existingUser = await User.findOne({ 
+    $or: [
+      { email },
+      { username: username?.toLowerCase() } // Case-insensitive username check
+    ]
+  });
 
-  if (userExists) {
-    return res
-      .status(400)
-      .json({ status: false, message: "Email address already exists" });
+  if (existingUser) {
+    if (existingUser.email === email) {
+      return res.status(400).json({ 
+        status: false, 
+        message: "Email address already exists" 
+      });
+    } else {
+      return res.status(400).json({ 
+        status: false, 
+        message: "Username is already taken" 
+      });
+    }
   }
 
+  // Create new user with username in lowercase for consistency
   const user = await User.create({
+    username: username.toLowerCase(),
     name,
-    email,
+    email: email.toLowerCase(),
     password,
-    isAdmin,
-    role,
-    title,
+    isAdmin: isAdmin || false,
+    role: role || 'user',
+    title: title || 'Member',
   });
 
   if (user) {

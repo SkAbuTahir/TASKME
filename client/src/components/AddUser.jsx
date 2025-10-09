@@ -32,10 +32,15 @@ const AddUser = ({ open, setOpen, userData }) => {
           dispatch(setCredentials({ ...res?.user }));
         }
       } else {
+        // Generate a username from email if not provided
+        const username = data?.username || data?.email?.split('@')[0].toLowerCase();
+        
         const res = await addNewUser({
           ...data,
-          password: data?.email,
+          username,
+          password: data?.email, // Using email as password for new users (consider changing this in production)
         }).unwrap();
+        
         toast.success("New User added successfully");
       }
 
@@ -59,6 +64,29 @@ const AddUser = ({ open, setOpen, userData }) => {
             {userData ? "UPDATE PROFILE" : "ADD NEW USER"}
           </Dialog.Title>
           <div className='mt-2 flex flex-col gap-6'>
+            <Textbox
+              placeholder='Username (letters, numbers, _ only)'
+              type='text'
+              name='username'
+              label='Username'
+              className='w-full rounded'
+              register={register("username", {
+                required: "Username is required!",
+                pattern: {
+                  value: /^[a-zA-Z0-9_]+$/,
+                  message: "Username can only contain letters, numbers, and underscores"
+                },
+                minLength: {
+                  value: 3,
+                  message: "Username must be at least 3 characters"
+                },
+                maxLength: {
+                  value: 30,
+                  message: "Username cannot exceed 30 characters"
+                }
+              })}
+              error={errors.username ? errors.username.message : ""}
+            />
             <Textbox
               placeholder='Full name'
               type='text'
