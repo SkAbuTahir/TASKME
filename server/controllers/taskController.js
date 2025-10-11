@@ -239,11 +239,14 @@ const getTasks = asyncHandler(async (req, res) => {
   const { userId, isAdmin } = req.user;
   const { stage, isTrashed, search } = req.query;
 
+  console.log('getTasks called with:', { userId, isAdmin, stage, isTrashed, search });
+
   let query = { isTrashed: isTrashed ? true : false };
 
-  if (!isAdmin) {
-    query.team = { $all: [userId] };
-  }
+  // Temporarily show all tasks for testing
+  // if (!isAdmin) {
+  //   query.team = { $all: [userId] };
+  // }
   if (stage) {
     query.stage = stage;
   }
@@ -259,6 +262,8 @@ const getTasks = asyncHandler(async (req, res) => {
     query = { ...query, ...searchQuery };
   }
 
+  console.log('Query:', query);
+
   let queryResult = Task.find(query)
     .populate({
       path: "team",
@@ -267,6 +272,7 @@ const getTasks = asyncHandler(async (req, res) => {
     .sort({ _id: -1 });
 
   const tasks = await queryResult;
+  console.log('Found tasks:', tasks.length);
 
   res.status(200).json({
     status: true,

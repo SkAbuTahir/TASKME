@@ -70,6 +70,14 @@ export const userApiSlice = apiSlice.injectEndpoints({
         credentials: "include",
       }),
     }),
+
+    getPrismaUsers: builder.query({
+      query: () => ({
+        url: `/api/api/users`,
+        method: "GET",
+        credentials: "include",
+      }),
+    }),
   }),
 });
 
@@ -82,4 +90,5 @@ export const {
   useGetNotificationsQuery,
   useMarkNotiAsReadMutation,
   useGetUserTaskStatusQuery,
+  useGetPrismaUsersQuery,
 } = userApiSlice;

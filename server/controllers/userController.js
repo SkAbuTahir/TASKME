@@ -41,11 +41,14 @@ const loginUser = asyncHandler(async (req, res) => {
 const registerUser = asyncHandler(async (req, res) => {
   const { username, name, email, password, isAdmin, role, title } = req.body;
 
+  // Generate username from email if not provided
+  const finalUsername = username || email.split('@')[0];
+
   // Check if user exists by email or username
   const existingUser = await User.findOne({ 
     $or: [
       { email },
-      { username: username?.toLowerCase() } // Case-insensitive username check
+      { username: finalUsername?.toLowerCase() } // Case-insensitive username check
     ]
   });
 
@@ -65,7 +68,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // Create new user with username in lowercase for consistency
   const user = await User.create({
-    username: username.toLowerCase(),
+    username: finalUsername.toLowerCase(),
     name,
     email: email.toLowerCase(),
     password,
@@ -114,7 +117,7 @@ const logoutUser = (req, res) => {
 
 const getTeamList = asyncHandler(async (req, res) => {
   const { search } = req.query;
-  let query = {};
+  let query = { isActive: true };
 
   if (search) {
     const searchQuery = {
@@ -128,9 +131,10 @@ const getTeamList = asyncHandler(async (req, res) => {
     query = { ...query, ...searchQuery };
   }
 
-  const user = await User.find(query).select("name title role email isActive");
-
-  res.status(201).json(user);
+  const users = await User.find(query).select("name title role email isActive");
+  console.log('Found users:', users.length);
+  
+  res.status(200).json(users);
 });
 
 // @GET  - get user notifications

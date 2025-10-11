@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button, Loading, Textbox } from "../components";
 import { useLoginMutation } from "../redux/slices/api/authApiSlice";
@@ -110,6 +110,14 @@ const Login = () => {
                 className='w-full h-10 bg-blue-700 text-white rounded-full'
               />
             )}
+            <div className='text-center'>
+              <span className='text-sm text-gray-600'>
+                Don't have an account?{' '}
+                <Link to='/register' className='text-blue-600 hover:underline'>
+                  Sign up
+                </Link>
+              </span>
+            </div>
           </form>
         </div>
       </div>
