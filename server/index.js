@@ -22,6 +22,7 @@ const corsOptions = {
     const allowedOrigins = [
       "https://mern-task-manager-app.netlify.app",
       "https://taskmeiisppr.netlify.app", // Your Netlify URL
+      "https://taskme-47hc.onrender.com", // Your backend URL
       "http://localhost:3000",
       "http://localhost:3001"
     ];
