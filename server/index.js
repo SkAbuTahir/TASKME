@@ -21,7 +21,7 @@ const corsOptions = {
 
     const allowedOrigins = [
       "https://mern-task-manager-app.netlify.app",
-      "https://your-netlify-app.netlify.app", // Replace with your actual Netlify URL
+      "https://taskmeiisppr.netlify.app", // Your Netlify URL
       "http://localhost:3000",
       "http://localhost:3001"
     ];
