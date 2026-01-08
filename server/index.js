@@ -15,23 +15,7 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    const allowedOrigins = [
-      "https://mern-task-manager-app.netlify.app",
-      "https://taskmeiisppr.netlify.app", // Your Netlify URL
-      "https://taskme-47hc.onrender.com", // Your backend URL
-      "http://localhost:3000",
-      "http://localhost:3001"
-    ];
-
-    if (process.env.NODE_ENV === 'development' || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Allow all origins temporarily for debugging
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [

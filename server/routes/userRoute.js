@@ -16,6 +16,11 @@ import { isAdminRoute, protectRoute } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Test route
+router.get("/", (req, res) => {
+  res.json({ message: "User routes working!" });
+});
+
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);

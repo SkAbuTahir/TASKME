@@ -8,7 +8,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "start:prod": "node index.js",
-    "build": "prisma generate && prisma db push",
+    "build": "prisma generate && prisma db push && npm run db:seed",
     "postinstall": "prisma generate",
     "create-users": "node utils/createUsers.js",
     "db:generate": "prisma generate",
