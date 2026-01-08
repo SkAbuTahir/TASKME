@@ -1,9 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-const baseUrl = 'http://localhost:8800/api';
+const baseUrl = import.meta.env.VITE_APP_BASE_URL || 'http://localhost:8800';
 
 const baseQuery = fetchBaseQuery({
-  baseUrl,
+  baseUrl: `${baseUrl}/api`,
   credentials: 'include',
   prepareHeaders: (headers, { endpoint, extra }) => {
     // Always set Content-Type for all requests
