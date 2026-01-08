@@ -1,15 +1,103 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  name      String
+  title     String
+  role      String
+  email     String   @unique
+  password  String
+  isAdmin   Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  tasks     Task[]   @relation("TaskAssignee")
+  activities Activity[]
+  
+  @@map("users")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  date        DateTime  @default(now())
+  priority    Priority  @default(NORMAL)
+  stage       Stage     @default(TODO)
+  description String?
+  assets      String[]
+  links       String[]
+  isTrashed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  team        User[]    @relation("TaskAssignee")
+  activities  Activity[]
+  subTasks    SubTask[]
+  
+  @@map("tasks")
+}
+
+model Activity {
+  id       String       @id @default(cuid())
+  type     ActivityType @default(ASSIGNED)
+  activity String?
+  date     DateTime     @default(now())
+  taskId   String
+  userId   String
+  
+  // Relations
+  task     Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id])
+  
+  @@map("activities")
+}
+
+model SubTask {
+  id          String   @id @default(cuid())
+  title       String
+  date        DateTime?
+  tag         String?
+  isCompleted Boolean  @default(false)
+  taskId      String
+  
+  // Relations
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@map("sub_tasks")
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  NORMAL
+  LOW
+}
+
+enum Stage {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ActivityType {
+  ASSIGNED
+  STARTED
+  IN_PROGRESS
+  BUG
+  COMPLETED
+  COMMENTED
 }

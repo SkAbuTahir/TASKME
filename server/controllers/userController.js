@@ -1,13 +1,13 @@
 import asyncHandler from "express-async-handler";
-import Notice from "../models/notis.js";
-import User from "../models/userModel.js";
+import { createUser, findUserByEmail, findUserById, getAllUsers, updateUser, matchPassword } from "../models/userModel.js";
 import createJWT from "../utils/index.js";
+import { prisma } from "../utils/connectDB.js";
 
 // POST request - login user
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await findUserByEmail(email);
 
   if (!user) {
     return res
@@ -22,14 +22,13 @@ const loginUser = asyncHandler(async (req, res) => {
     });
   }
 
-  const isMatch = await user.matchPassword(password);
+  const isMatch = await matchPassword(password, user.password);
 
   if (user && isMatch) {
-    createJWT(res, user._id);
+    createJWT(res, user.id);
 
-    user.password = undefined;
-
-    res.status(200).json(user);
+    const { password: _, ...userWithoutPassword } = user;
+    res.status(200).json(userWithoutPassword);
   } else {
     return res
       .status(401)
@@ -45,11 +44,13 @@ const registerUser = asyncHandler(async (req, res) => {
   const finalUsername = username || email.split('@')[0];
 
   // Check if user exists by email or username
-  const existingUser = await User.findOne({ 
-    $or: [
-      { email },
-      { username: finalUsername?.toLowerCase() } // Case-insensitive username check
-    ]
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email },
+        { username: finalUsername.toLowerCase() }
+      ]
+    }
   });
 
   if (existingUser) {
@@ -66,8 +67,8 @@ const registerUser = asyncHandler(async (req, res) => {
     }
   }
 
-  // Create new user with username in lowercase for consistency
-  const user = await User.create({
+  // Create new user
+  const user = await createUser({
     username: finalUsername.toLowerCase(),
     name,
     email: email.toLowerCase(),
@@ -78,11 +79,10 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
-    isAdmin ? createJWT(res, user._id) : null;
+    isAdmin ? createJWT(res, user.id) : null;
 
-    user.password = undefined;
-
-    res.status(201).json(user);
+    const { password: _, ...userWithoutPassword } = user;
+    res.status(201).json(userWithoutPassword);
   } else {
     return res
       .status(400)
@@ -99,86 +99,66 @@ const logoutUser = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-// @GET -   Get user profile
-// const getUserProfile = asyncHandler(async (req, res) => {
-//   const { userId } = req.user;
-
-//   const user = await User.findById(userId);
-
-//   user.password = undefined;
-
-//   if (user) {
-//     res.json({ ...user });
-//   } else {
-//     res.status(404);
-//     throw new Error("User not found");
-//   }
-// });
-
 const getTeamList = asyncHandler(async (req, res) => {
   const { search } = req.query;
-  let query = { isActive: true };
+  let where = { isActive: true };
 
   if (search) {
-    const searchQuery = {
-      $or: [
-        { title: { $regex: search, $options: "i" } },
-        { name: { $regex: search, $options: "i" } },
-        { role: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-      ],
-    };
-    query = { ...query, ...searchQuery };
+    where.OR = [
+      { title: { contains: search, mode: 'insensitive' } },
+      { name: { contains: search, mode: 'insensitive' } },
+      { role: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ];
   }
 
-  const users = await User.find(query).select("name title role email isActive");
-  console.log('Found users:', users.length);
+  const users = await prisma.user.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      title: true,
+      role: true,
+      email: true,
+      isActive: true
+    }
+  });
   
+  console.log('Found users:', users.length);
   res.status(200).json(users);
 });
 
 // @GET  - get user notifications
 const getNotificationsList = asyncHandler(async (req, res) => {
   const { userId } = req.user;
-
-  const notice = await Notice.find({
-    team: userId,
-    isRead: { $nin: [userId] },
-  })
-    .populate("task", "title")
-    .sort({ _id: -1 });
-
-  res.status(200).json(notice);
+  // TODO: Implement notifications with Prisma
+  res.status(200).json([]);
 });
 
 // @GET  - get user task status
 const getUserTaskStatus = asyncHandler(async (req, res) => {
-  const tasks = await User.find()
-    .populate("tasks", "title stage")
-    .sort({ _id: -1 });
+  const users = await prisma.user.findMany({
+    include: {
+      tasks: {
+        select: {
+          id: true,
+          title: true,
+          stage: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
 
-  res.status(200).json(tasks);
+  res.status(200).json(users);
 });
 
 // @GET  - get user notifications
 const markNotificationRead = asyncHandler(async (req, res) => {
   try {
-    const { userId } = req.user;
-    const { isReadType, id } = req.query;
-
-    if (isReadType === "all") {
-      await Notice.updateMany(
-        { team: userId, isRead: { $nin: [userId] } },
-        { $push: { isRead: userId } },
-        { new: true }
-      );
-    } else {
-      await Notice.findOneAndUpdate(
-        { _id: id, isRead: { $nin: [userId] } },
-        { $push: { isRead: userId } },
-        { new: true }
-      );
-    }
+    // TODO: Implement with Prisma
     res.status(201).json({ status: true, message: "Done" });
   } catch (error) {
     console.log(error);
@@ -197,22 +177,21 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       ? _id
       : userId;
 
-  const user = await User.findById(id);
+  const user = await findUserById(id);
 
   if (user) {
-    user.name = req.body.name || user.name;
-    // user.email = req.body.email || user.email;
-    user.title = req.body.title || user.title;
-    user.role = req.body.role || user.role;
+    const updatedUser = await updateUser(id, {
+      name: req.body.name || user.name,
+      title: req.body.title || user.title,
+      role: req.body.role || user.role,
+    });
 
-    const updatedUser = await user.save();
-
-    user.password = undefined;
+    const { password: _, ...userWithoutPassword } = updatedUser;
 
     res.status(201).json({
       status: true,
       message: "Profile Updated Successfully.",
-      user: updatedUser,
+      user: userWithoutPassword,
     });
   } else {
     res.status(404).json({ status: false, message: "User not found" });
@@ -223,19 +202,19 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 const activateUserProfile = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const user = await User.findById(id);
+  const user = await findUserById(id);
 
   if (user) {
-    user.isActive = req.body.isActive;
+    const updatedUser = await updateUser(id, {
+      isActive: req.body.isActive
+    });
 
-    await user.save();
-
-    user.password = undefined;
+    const { password: _, ...userWithoutPassword } = updatedUser;
 
     res.status(201).json({
       status: true,
       message: `User account has been ${
-        user?.isActive ? "activated" : "disabled"
+        updatedUser?.isActive ? "activated" : "disabled"
       }`,
     });
   } else {
@@ -246,26 +225,16 @@ const activateUserProfile = asyncHandler(async (req, res) => {
 const changeUserPassword = asyncHandler(async (req, res) => {
   const { userId } = req.user;
 
-  // Remove this condition
-  if (userId === "65ff94c7bb2de638d0c73f63") {
-    return res.status(404).json({
-      status: false,
-      message: "This is a test user. You can not chnage password. Thank you!!!",
-    });
-  }
-
-  const user = await User.findById(userId);
+  const user = await findUserById(userId);
 
   if (user) {
-    user.password = req.body.password;
-
-    await user.save();
-
-    user.password = undefined;
+    await updateUser(userId, {
+      password: req.body.password
+    });
 
     res.status(201).json({
       status: true,
-      message: `Password chnaged successfully.`,
+      message: `Password changed successfully.`,
     });
   } else {
     res.status(404).json({ status: false, message: "User not found" });
@@ -276,7 +245,9 @@ const changeUserPassword = asyncHandler(async (req, res) => {
 const deleteUserProfile = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  await User.findByIdAndDelete(id);
+  await prisma.user.delete({
+    where: { id }
+  });
 
   res.status(200).json({ status: true, message: "User deleted successfully" });
 });

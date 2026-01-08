@@ -4,96 +4,123 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Hash password for all users
-  const hashedPassword = await bcrypt.hash('password123', 12);
+  console.log('Starting database seed...');
 
-  // Create users individually
-  const users = [];
-  
-  const userData = [
-    {
-      email: 'admin@taskme.com',
-      name: 'Admin User',
+  // Hash password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash('password123', salt);
+
+  // Create admin user
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@taskme.com' },
+    update: {},
+    create: {
       username: 'admin',
-      title: 'System Administrator',
-      role: 'Admin',
+      name: 'Admin User',
+      title: 'Administrator',
+      role: 'admin',
+      email: 'admin@taskme.com',
+      password: hashedPassword,
       isAdmin: true,
-      password: hashedPassword,
+      isActive: true,
     },
-    {
-      email: 'john.smith@taskme.com',
-      name: 'John Smith',
-      username: 'johnsmith',
-      title: 'Senior Developer',
-      role: 'Developer',
-      password: hashedPassword,
-    },
-    {
-      email: 'sarah.johnson@taskme.com',
-      name: 'Sarah Johnson',
-      username: 'sarahjohnson',
-      title: 'Project Manager',
-      role: 'Manager',
-      password: hashedPassword,
-    },
-    {
-      email: 'mike.wilson@taskme.com',
-      name: 'Mike Wilson',
-      username: 'mikewilson',
-      title: 'Kitchen Manager',
-      role: 'Kitchen Staff',
-      password: hashedPassword,
-    },
-    {
-      email: 'emily.davis@taskme.com',
-      name: 'Emily Davis',
-      username: 'emilydavis',
-      title: 'Database Administrator',
-      role: 'Developer',
-      password: hashedPassword,
-    },
-    {
-      email: 'david.brown@taskme.com',
-      name: 'David Brown',
-      username: 'davidbrown',
-      title: 'Team Lead',
-      role: 'Manager',
-      password: hashedPassword,
-    },
-    {
-      email: 'lisa.garcia@taskme.com',
-      name: 'Lisa Garcia',
-      username: 'lisagarcia',
-      title: 'Chef',
-      role: 'Kitchen Staff',
-      password: hashedPassword,
-    },
-    {
-      email: 'robert.taylor@taskme.com',
-      name: 'Robert Taylor',
-      username: 'roberttaylor',
-      title: 'Security Analyst',
-      role: 'Security',
-      password: hashedPassword,
-    },
-  ];
+  });
 
-  for (const user of userData) {
-    try {
-      const existingUser = await prisma.user.findUnique({ where: { email: user.email } });
-      if (!existingUser) {
-        const createdUser = await prisma.user.create({ data: user });
-        users.push(createdUser);
-      } else {
-        users.push(existingUser);
+  // Create regular users
+  const user1 = await prisma.user.upsert({
+    where: { email: 'john@taskme.com' },
+    update: {},
+    create: {
+      username: 'john_doe',
+      name: 'John Doe',
+      title: 'Developer',
+      role: 'user',
+      email: 'john@taskme.com',
+      password: hashedPassword,
+      isAdmin: false,
+      isActive: true,
+    },
+  });
+
+  const user2 = await prisma.user.upsert({
+    where: { email: 'jane@taskme.com' },
+    update: {},
+    create: {
+      username: 'jane_smith',
+      name: 'Jane Smith',
+      title: 'Designer',
+      role: 'user',
+      email: 'jane@taskme.com',
+      password: hashedPassword,
+      isAdmin: false,
+      isActive: true,
+    },
+  });
+
+  // Create sample tasks
+  const task1 = await prisma.task.create({
+    data: {
+      title: 'Setup Project Database',
+      description: 'Migrate from MongoDB to PostgreSQL',
+      priority: 'HIGH',
+      stage: 'IN_PROGRESS',
+      date: new Date(),
+      assets: [],
+      links: [],
+      team: {
+        connect: [{ id: adminUser.id }, { id: user1.id }]
+      },
+      activities: {
+        create: [
+          {
+            type: 'ASSIGNED',
+            activity: 'Task has been assigned to the team',
+            userId: adminUser.id,
+          }
+        ]
+      },
+      subTasks: {
+        create: [
+          {
+            title: 'Update database schema',
+            isCompleted: false,
+          },
+          {
+            title: 'Migrate existing data',
+            isCompleted: false,
+          }
+        ]
       }
-    } catch (error) {
-      console.log(`User ${user.email} might already exist, skipping...`);
     }
-  }
+  });
 
-  console.log('Seeded users:', users.length);
-  console.log('No tasks created - tasks must be assigned to existing users only');
+  const task2 = await prisma.task.create({
+    data: {
+      title: 'Design User Interface',
+      description: 'Create modern UI components for the task manager',
+      priority: 'MEDIUM',
+      stage: 'TODO',
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      assets: [],
+      links: [],
+      team: {
+        connect: [{ id: user2.id }]
+      },
+      activities: {
+        create: [
+          {
+            type: 'ASSIGNED',
+            activity: 'UI design task assigned',
+            userId: adminUser.id,
+          }
+        ]
+      }
+    }
+  });
+
+  console.log('Database seeded successfully!');
+  console.log('Created users:', { adminUser, user1, user2 });
+  console.log('Created tasks:', { task1, task2 });
 }
 
 main()
