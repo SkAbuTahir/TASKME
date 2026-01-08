@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
-import User from "../models/userModel.js";
+import { findUserById } from "../models/userModel.js";
 
 const protectRoute = asyncHandler(async (req, res, next) => {
   let token = req.cookies.token;
@@ -9,9 +9,13 @@ const protectRoute = asyncHandler(async (req, res, next) => {
     try {
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
-      const resp = await User.findById(decodedToken.userId).select(
-        "isAdmin email"
-      );
+      const resp = await findUserById(decodedToken.userId);
+
+      if (!resp) {
+        return res
+          .status(401)
+          .json({ status: false, message: "User not found. Try login again." });
+      }
 
       req.user = {
         email: resp.email,
