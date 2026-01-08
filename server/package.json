@@ -5,7 +5,11 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "start:prod": "node index.js",
+    "build": "prisma generate && prisma db push",
+    "postinstall": "prisma generate",
     "create-users": "node utils/createUsers.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
